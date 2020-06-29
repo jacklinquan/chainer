@@ -102,21 +102,15 @@ main() {
         run docker push "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${target}:${base_branch}"
       fi
       ;;
-	'chainermn' )
+    'chainermn' )
       docker_args+=(
           --volume="$(cd "$(dirname "${BASH_SOURCE}")/.."; pwd):/src:ro")
       if [ "${GPU:-0}" != '0' ]; then
         docker_args+=(
             --ipc=host --privileged --env="GPU=${GPU}" --runtime=nvidia)
       fi
-      docker_args+=(--env="CUPY_VERSION=${CUPY_VERSION:-master}")
-      # prepare CuPy wheel
-      CUPY_MASTER=$(gsutil -q cp gs://tmp-asia-pfn-public-ci/cupy/wheel/master -)
-      mkdir /tmp/cupy-wheel
-      gsutil -q cp gs://tmp-asia-pfn-public-ci/cupy/wheel/${CUPY_MASTER}/cuda9.2/*.whl /tmp/cupy-wheel
-      docker_args+=(--volume="/tmp/cupy-wheel:/cupy-wheel:ro")
       run "${docker_args[@]}" \
-          "asia.gcr.io/pfn-public-ci/chainermn-ci-prep-${CUDATAG:-cuda92}" \
+          "asia.gcr.io/pfn-public-ci/chainer-ci-prep.${TARGET}:${base_branch}" \
           bash /src/.pfnci/run.sh "${TARGET}"
       ;;
     # Unsupported targets.
@@ -156,7 +150,7 @@ prepare_docker() {
 # base development branch.
 is_known_base_branch() {
   local branch="${1##refs/heads/}"
-  for BASE_BRANCH in master v6; do
+  for BASE_BRANCH in master v7; do
     if [ "${branch}" = "${BASE_BRANCH}" ]; then
       return 0
     fi
@@ -166,7 +160,7 @@ is_known_base_branch() {
 
 # get_base_branch returns the base development branch for the current HEAD.
 get_base_branch() {
-  for BASE_BRANCH in master v6; do
+  for BASE_BRANCH in master v7; do
     run git merge-base --is-ancestor "origin/${BASE_BRANCH}" HEAD && echo "${BASE_BRANCH}" && return 0
   done
   echo "Base branch of HEAD is not valid." >&2
